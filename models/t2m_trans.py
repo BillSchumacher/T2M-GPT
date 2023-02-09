@@ -27,15 +27,11 @@ class Text2Motion_Transformer(nn.Module):
 
     def forward(self, idxs, clip_feature):
         feat = self.trans_base(idxs, clip_feature)
-        logits = self.trans_head(feat)
-        return logits
+        return self.trans_head(feat)
 
     def sample(self, clip_feature, if_categorial=False):
         for k in range(self.block_size):
-            if k == 0:
-                x = []
-            else:
-                x = xs
+            x = [] if k == 0 else xs
             logits = self.forward(x, clip_feature)
             logits = logits[:, -1, :]
             probs = F.softmax(logits, dim=-1)
@@ -50,11 +46,7 @@ class Text2Motion_Transformer(nn.Module):
                 if idx[0] == self.num_vq:
                     break
             # append to the sequence and continue
-            if k == 0:
-                xs = idx
-            else:
-                xs = torch.cat((xs, idx), dim=1)
-            
+            xs = idx if k == 0 else torch.cat((xs, idx), dim=1)
             if k == self.block_size - 1:
                 return xs[:, :-1]
         return xs
@@ -201,8 +193,7 @@ class CrossCondTransHead(nn.Module):
     def forward(self, x):
         x = self.blocks(x)
         x = self.ln_f(x)
-        logits = self.head(x)
-        return logits
+        return self.head(x)
 
     
 

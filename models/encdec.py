@@ -13,13 +13,10 @@ class Encoder(nn.Module):
                  activation='relu',
                  norm=None):
         super().__init__()
-        
-        blocks = []
+
         filter_t, pad_t = stride_t * 2, stride_t // 2
-        blocks.append(nn.Conv1d(input_emb_width, width, 3, 1, 1))
-        blocks.append(nn.ReLU())
-        
-        for i in range(down_t):
+        blocks = [nn.Conv1d(input_emb_width, width, 3, 1, 1), nn.ReLU()]
+        for _ in range(down_t):
             input_dim = width
             block = nn.Sequential(
                 nn.Conv1d(input_dim, width, filter_t, stride_t, pad_t),
@@ -44,12 +41,9 @@ class Decoder(nn.Module):
                  activation='relu',
                  norm=None):
         super().__init__()
-        blocks = []
-        
         filter_t, pad_t = stride_t * 2, stride_t // 2
-        blocks.append(nn.Conv1d(output_emb_width, width, 3, 1, 1))
-        blocks.append(nn.ReLU())
-        for i in range(down_t):
+        blocks = [nn.Conv1d(output_emb_width, width, 3, 1, 1), nn.ReLU()]
+        for _ in range(down_t):
             out_dim = width
             block = nn.Sequential(
                 Resnet1D(width, depth, dilation_growth_rate, reverse_dilation=True, activation=activation, norm=norm),
@@ -57,9 +51,13 @@ class Decoder(nn.Module):
                 nn.Conv1d(width, out_dim, 3, 1, 1)
             )
             blocks.append(block)
-        blocks.append(nn.Conv1d(width, width, 3, 1, 1))
-        blocks.append(nn.ReLU())
-        blocks.append(nn.Conv1d(width, input_emb_width, 3, 1, 1))
+        blocks.extend(
+            (
+                nn.Conv1d(width, width, 3, 1, 1),
+                nn.ReLU(),
+                nn.Conv1d(width, input_emb_width, 3, 1, 1),
+            )
+        )
         self.model = nn.Sequential(*blocks)
 
     def forward(self, x):

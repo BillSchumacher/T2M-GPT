@@ -35,9 +35,7 @@ def recover_from_rot(data, joints_num, skeleton):
     cont6d_params = torch.cat([r_rot_cont6d, cont6d_params], dim=-1)
     cont6d_params = cont6d_params.view(-1, joints_num, 6)
 
-    positions = skeleton.forward_kinematics_cont6d(cont6d_params, r_pos)
-
-    return positions
+    return skeleton.forward_kinematics_cont6d(cont6d_params, r_pos)
 
 
 def recover_from_ric(data, joints_num):

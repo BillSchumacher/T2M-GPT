@@ -36,15 +36,14 @@ class QuantizeEMAReset(nn.Module):
         self.init = True
         
     @torch.no_grad()
-    def compute_perplexity(self, code_idx) : 
+    def compute_perplexity(self, code_idx): 
         # Calculate new centres
         code_onehot = torch.zeros(self.nb_code, code_idx.shape[0], device=code_idx.device)  # nb_code, N * L
         code_onehot.scatter_(0, code_idx.view(1, code_idx.shape[0]), 1)
 
         code_count = code_onehot.sum(dim=-1)  # nb_code
-        prob = code_count / torch.sum(code_count)  
-        perplexity = torch.exp(-torch.sum(prob * torch.log(prob + 1e-7)))
-        return perplexity
+        prob = code_count / torch.sum(code_count)
+        return torch.exp(-torch.sum(prob * torch.log(prob + 1e-7)))
     
     @torch.no_grad()
     def update_codebook(self, x, code_idx):
@@ -66,11 +65,8 @@ class QuantizeEMAReset(nn.Module):
         code_update = self.code_sum.view(self.nb_code, self.code_dim) / self.code_count.view(self.nb_code, 1)
 
         self.codebook = usage * code_update + (1 - usage) * code_rand
-        prob = code_count / torch.sum(code_count)  
-        perplexity = torch.exp(-torch.sum(prob * torch.log(prob + 1e-7)))
-
-            
-        return perplexity
+        prob = code_count / torch.sum(code_count)
+        return torch.exp(-torch.sum(prob * torch.log(prob + 1e-7)))
 
     def preprocess(self, x):
         # NCT -> NTC -> [NT, C]
@@ -87,8 +83,7 @@ class QuantizeEMAReset(nn.Module):
         return code_idx
 
     def dequantize(self, code_idx):
-        x = F.embedding(code_idx, self.codebook)
-        return x
+        return F.embedding(code_idx, self.codebook)
 
     
     def forward(self, x):
@@ -169,11 +164,9 @@ class Quantizer(nn.Module):
 
         # B x V
         d = torch.sum(z ** 2, dim=1, keepdim=True) + \
-            torch.sum(self.embedding.weight ** 2, dim=1) - 2 * \
-            torch.matmul(z, self.embedding.weight.t())
-        # B x 1
-        min_encoding_indices = torch.argmin(d, dim=1)
-        return min_encoding_indices
+                torch.sum(self.embedding.weight ** 2, dim=1) - 2 * \
+                torch.matmul(z, self.embedding.weight.t())
+        return torch.argmin(d, dim=1)
 
     def dequantize(self, indices):
 
@@ -220,15 +213,14 @@ class QuantizeReset(nn.Module):
         self.init = True
         
     @torch.no_grad()
-    def compute_perplexity(self, code_idx) : 
+    def compute_perplexity(self, code_idx): 
         # Calculate new centres
         code_onehot = torch.zeros(self.nb_code, code_idx.shape[0], device=code_idx.device)  # nb_code, N * L
         code_onehot.scatter_(0, code_idx.view(1, code_idx.shape[0]), 1)
 
         code_count = code_onehot.sum(dim=-1)  # nb_code
-        prob = code_count / torch.sum(code_count)  
-        perplexity = torch.exp(-torch.sum(prob * torch.log(prob + 1e-7)))
-        return perplexity
+        prob = code_count / torch.sum(code_count)
+        return torch.exp(-torch.sum(prob * torch.log(prob + 1e-7)))
     
     def update_codebook(self, x, code_idx):
         
@@ -245,11 +237,8 @@ class QuantizeReset(nn.Module):
         usage = (self.code_count.view(self.nb_code, 1) >= 1.0).float()
 
         self.codebook.data = usage * self.codebook.data + (1 - usage) * code_rand
-        prob = code_count / torch.sum(code_count)  
-        perplexity = torch.exp(-torch.sum(prob * torch.log(prob + 1e-7)))
-
-            
-        return perplexity
+        prob = code_count / torch.sum(code_count)
+        return torch.exp(-torch.sum(prob * torch.log(prob + 1e-7)))
 
     def preprocess(self, x):
         # NCT -> NTC -> [NT, C]
@@ -266,8 +255,7 @@ class QuantizeReset(nn.Module):
         return code_idx
 
     def dequantize(self, code_idx):
-        x = F.embedding(code_idx, self.codebook)
-        return x
+        return F.embedding(code_idx, self.codebook)
 
     
     def forward(self, x):
@@ -331,15 +319,14 @@ class QuantizeEMA(nn.Module):
         self.init = True
         
     @torch.no_grad()
-    def compute_perplexity(self, code_idx) : 
+    def compute_perplexity(self, code_idx): 
         # Calculate new centres
         code_onehot = torch.zeros(self.nb_code, code_idx.shape[0], device=code_idx.device)  # nb_code, N * L
         code_onehot.scatter_(0, code_idx.view(1, code_idx.shape[0]), 1)
 
         code_count = code_onehot.sum(dim=-1)  # nb_code
-        prob = code_count / torch.sum(code_count)  
-        perplexity = torch.exp(-torch.sum(prob * torch.log(prob + 1e-7)))
-        return perplexity
+        prob = code_count / torch.sum(code_count)
+        return torch.exp(-torch.sum(prob * torch.log(prob + 1e-7)))
     
     @torch.no_grad()
     def update_codebook(self, x, code_idx):
@@ -357,10 +344,8 @@ class QuantizeEMA(nn.Module):
         code_update = self.code_sum.view(self.nb_code, self.code_dim) / self.code_count.view(self.nb_code, 1)
 
         self.codebook = code_update
-        prob = code_count / torch.sum(code_count)  
-        perplexity = torch.exp(-torch.sum(prob * torch.log(prob + 1e-7)))
-            
-        return perplexity
+        prob = code_count / torch.sum(code_count)
+        return torch.exp(-torch.sum(prob * torch.log(prob + 1e-7)))
 
     def preprocess(self, x):
         # NCT -> NTC -> [NT, C]
@@ -377,8 +362,7 @@ class QuantizeEMA(nn.Module):
         return code_idx
 
     def dequantize(self, code_idx):
-        x = F.embedding(code_idx, self.codebook)
-        return x
+        return F.embedding(code_idx, self.codebook)
 
     
     def forward(self, x):

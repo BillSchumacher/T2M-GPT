@@ -1,4 +1,4 @@
-import os 
+import os
 import torch
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
@@ -67,14 +67,14 @@ trans_encoder = trans.Text2Motion_Transformer(num_vq=args.nb_code,
                                 fc_rate=args.ff_rate)
 
 
-print ('loading checkpoint from {}'.format(args.resume_pth))
+print(f'loading checkpoint from {args.resume_pth}')
 ckpt = torch.load(args.resume_pth, map_location='cpu')
 net.load_state_dict(ckpt['net'], strict=True)
 net.eval()
 net.cuda()
 
 if args.resume_trans is not None:
-    print ('loading transformer checkpoint from {}'.format(args.resume_trans))
+    print(f'loading transformer checkpoint from {args.resume_trans}')
     ckpt = torch.load(args.resume_trans, map_location='cpu')
     trans_encoder.load_state_dict(ckpt['trans'], strict=True)
 trans_encoder.train()
@@ -90,7 +90,7 @@ matching = []
 multi = []
 repeat_time = 20
 
-        
+
 for i in range(repeat_time):
     best_fid, best_iter, best_div, best_top1, best_top2, best_top3, best_matching, best_multi, writer, logger = eval_trans.evaluation_transformer_test(args.out_dir, val_loader, net, trans_encoder, logger, writer, 0, best_fid=1000, best_iter=0, best_div=100, best_top1=0, best_top2=0, best_top3=0, best_matching=100, best_multi=0, clip_model=clip_model, eval_wrapper=eval_wrapper, draw=False, savegif=False, save=False, savenpy=(i==0))
     fid.append(best_fid)

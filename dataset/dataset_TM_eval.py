@@ -51,7 +51,7 @@ class Text2MotionDataset(data.Dataset):
 
         mean = np.load(pjoin(self.meta_dir, 'mean.npy'))
         std = np.load(pjoin(self.meta_dir, 'std.npy'))
-        
+
         if is_test:
             split_file = pjoin(self.data_root, 'test.txt')
         else:
@@ -65,21 +65,18 @@ class Text2MotionDataset(data.Dataset):
         data_dict = {}
         id_list = []
         with cs.open(split_file, 'r') as f:
-            for line in f.readlines():
-                id_list.append(line.strip())
-
+            id_list.extend(line.strip() for line in f.readlines())
         new_name_list = []
         length_list = []
         for name in tqdm(id_list):
             try:
-                motion = np.load(pjoin(self.motion_dir, name + '.npy'))
+                motion = np.load(pjoin(self.motion_dir, f'{name}.npy'))
                 if (len(motion)) < min_motion_len or (len(motion) >= 200):
                     continue
                 text_data = []
                 flag = False
-                with cs.open(pjoin(self.text_dir, name + '.txt')) as f:
+                with cs.open(pjoin(self.text_dir, f'{name}.txt')) as f:
                     for line in f.readlines():
-                        text_dict = {}
                         line_split = line.strip().split('#')
                         caption = line_split[0]
                         tokens = line_split[1].split(' ')
@@ -88,8 +85,7 @@ class Text2MotionDataset(data.Dataset):
                         f_tag = 0.0 if np.isnan(f_tag) else f_tag
                         to_tag = 0.0 if np.isnan(to_tag) else to_tag
 
-                        text_dict['caption'] = caption
-                        text_dict['tokens'] = tokens
+                        text_dict = {'caption': caption, 'tokens': tokens}
                         if f_tag == 0.0 and to_tag == 0.0:
                             flag = True
                             text_data.append(text_dict)
@@ -200,18 +196,20 @@ class Text2MotionDataset(data.Dataset):
 
 def DATALoader(dataset_name, is_test,
                 batch_size, w_vectorizer,
-                num_workers = 8, unit_length = 4) : 
+                num_workers = 8, unit_length = 4): 
     
-    val_loader = torch.utils.data.DataLoader(Text2MotionDataset(dataset_name, is_test, w_vectorizer, unit_length=unit_length),
-                                              batch_size,
-                                              shuffle = True,
-                                              num_workers=num_workers,
-                                              collate_fn=collate_fn,
-                                              drop_last = True)
-    return val_loader
+    return torch.utils.data.DataLoader(
+        Text2MotionDataset(
+            dataset_name, is_test, w_vectorizer, unit_length=unit_length
+        ),
+        batch_size,
+        shuffle=True,
+        num_workers=num_workers,
+        collate_fn=collate_fn,
+        drop_last=True,
+    )
 
 
 def cycle(iterable):
     while True:
-        for x in iterable:
-            yield x
+        yield from iterable

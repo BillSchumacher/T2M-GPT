@@ -30,7 +30,7 @@ class VQMotionDataset(data.Dataset):
 
             self.max_motion_length = 196
             self.meta_dir = 'checkpoints/kit/VQVAEV3_CB1024_CMT_H1024_NRES3/meta'
-        
+
         joints_num = self.joints_num
 
         mean = np.load(pjoin(self.meta_dir, 'mean.npy'))
@@ -42,12 +42,10 @@ class VQMotionDataset(data.Dataset):
         self.lengths = []
         id_list = []
         with cs.open(split_file, 'r') as f:
-            for line in f.readlines():
-                id_list.append(line.strip())
-
+            id_list.extend(line.strip() for line in f.readlines())
         for name in tqdm(id_list):
             try:
-                motion = np.load(pjoin(self.motion_dir, name + '.npy'))
+                motion = np.load(pjoin(self.motion_dir, f'{name}.npy'))
                 if motion.shape[0] < self.window_size:
                     continue
                 self.lengths.append(motion.shape[0] - self.window_size)
@@ -56,10 +54,10 @@ class VQMotionDataset(data.Dataset):
                 # Some motion may not exist in KIT dataset
                 pass
 
-            
+
         self.mean = mean
         self.std = std
-        print("Total number of motions {}".format(len(self.data)))
+        print(f"Total number of motions {len(self.data)}")
 
     def inv_transform(self, data):
         return data * self.std + self.mean
@@ -75,14 +73,12 @@ class VQMotionDataset(data.Dataset):
 
     def __getitem__(self, item):
         motion = self.data[item]
-        
+
         idx = random.randint(0, len(motion) - self.window_size)
 
         motion = motion[idx:idx+self.window_size]
         "Z Normalization"
-        motion = (motion - self.mean) / self.std
-
-        return motion
+        return (motion - self.mean) / self.std
 
 def DATALoader(dataset_name,
                batch_size,
@@ -93,17 +89,16 @@ def DATALoader(dataset_name,
     trainSet = VQMotionDataset(dataset_name, window_size=window_size, unit_length=unit_length)
     prob = trainSet.compute_sampling_prob()
     sampler = torch.utils.data.WeightedRandomSampler(prob, num_samples = len(trainSet) * 1000, replacement=True)
-    train_loader = torch.utils.data.DataLoader(trainSet,
-                                              batch_size,
-                                              shuffle=True,
-                                              #sampler=sampler,
-                                              num_workers=num_workers,
-                                              #collate_fn=collate_fn,
-                                              drop_last = True)
-    
-    return train_loader
+    return torch.utils.data.DataLoader(
+        trainSet,
+        batch_size,
+        shuffle=True,
+        # sampler=sampler,
+        num_workers=num_workers,
+        # collate_fn=collate_fn,
+        drop_last=True,
+    )
 
 def cycle(iterable):
     while True:
-        for x in iterable:
-            yield x
+        yield from iterable
