@@ -56,7 +56,7 @@ def render(motions, outdir='test_vis', device_id=0, name=None, pred=True):
     faces = rot2xyz.smpl_model.faces
 
     if (not os.path.exists(outdir + name+'_pred.pt') and pred) or (not os.path.exists(outdir + name+'_gt.pt') and not pred): 
-        print(f'Running SMPLify, it may take a few minutes.')
+        print('Running SMPLify, it may take a few minutes.')
         motion_tensor, opt_dict = j2s.joint2smpl(motions)  # [nframes, njoints, 3]
 
         vertices = rot2xyz(torch.tensor(motion_tensor).clone(), mask=None,
@@ -68,11 +68,10 @@ def render(motions, outdir='test_vis', device_id=0, name=None, pred=True):
             torch.save(vertices, outdir + name+'_pred.pt')
         else:
             torch.save(vertices, outdir + name+'_gt.pt')
+    elif pred:
+        vertices = torch.load(outdir + name+'_pred.pt')
     else:
-        if pred:
-            vertices = torch.load(outdir + name+'_pred.pt')
-        else:
-            vertices = torch.load(outdir + name+'_gt.pt')
+        vertices = torch.load(outdir + name+'_gt.pt')
     frames = vertices.shape[3] # shape: 1, nb_frames, 3, nb_joints
     print (vertices.shape)
     MINS = torch.min(torch.min(vertices[0], axis=0)[0], axis=1)[0]
@@ -81,10 +80,10 @@ def render(motions, outdir='test_vis', device_id=0, name=None, pred=True):
 
 
     out_list = []
-    
+
     minx = MINS[0] - 0.5
     maxx = MAXS[0] + 0.5
-    minz = MINS[2] - 0.5 
+    minz = MINS[2] - 0.5
     maxz = MAXS[2] + 0.5
     polygon = geometry.Polygon([[minx, minz], [minx, maxz], [maxx, maxz], [maxx, minz]])
     polygon_mesh = trimesh.creation.extrude_polygon(polygon, 1e-5)
@@ -113,7 +112,7 @@ def render(motions, outdir='test_vis', device_id=0, name=None, pred=True):
 
         bg_color = [1, 1, 1, 0.8]
         scene = pyrender.Scene(bg_color=bg_color, ambient_light=(0.4, 0.4, 0.4))
-        
+
         sx, sy, tx, ty = [0.75, 0.75, 0, 0.10]
 
         camera = pyrender.PerspectiveCamera(yfov=(np.pi / 3.0))
@@ -153,7 +152,7 @@ def render(motions, outdir='test_vis', device_id=0, name=None, pred=True):
 
                                 [ 0, 0, 0, 1]
                                 ])
-        
+
         # render scene
         r = pyrender.OffscreenRenderer(960, 960)
 

@@ -16,7 +16,7 @@ class VQMotionDataset(data.Dataset):
 
         self.dataset_name = dataset_name
         min_motion_len = 40 if dataset_name =='t2m' else 24
-        
+
         if dataset_name == 't2m':
             self.data_root = './dataset/HumanML3D'
             self.motion_dir = pjoin(self.data_root, 'new_joint_vecs')
@@ -39,25 +39,23 @@ class VQMotionDataset(data.Dataset):
             self.max_motion_length = 196
             self.meta_dir = 'checkpoints/kit/VQVAEV3_CB1024_CMT_H1024_NRES3/meta'
             #kinematic_chain = paramUtil.kit_kinematic_chain
-        
+
         joints_num = self.joints_num
 
         mean = np.load(pjoin(self.meta_dir, 'mean.npy'))
         std = np.load(pjoin(self.meta_dir, 'std.npy'))
-        
+
         split_file = pjoin(self.data_root, 'train.txt')
-        
+
         data_dict = {}
         id_list = []
         with cs.open(split_file, 'r') as f:
-            for line in f.readlines():
-                id_list.append(line.strip())
-
+            id_list.extend(line.strip() for line in f.readlines())
         new_name_list = []
         length_list = []
         for name in tqdm(id_list):
             try:
-                motion = np.load(pjoin(self.motion_dir, name + '.npy'))
+                motion = np.load(pjoin(self.motion_dir, f'{name}.npy'))
                 if (len(motion)) < min_motion_len or (len(motion) >= 200):
                     continue
 
@@ -100,18 +98,17 @@ class VQMotionDataset(data.Dataset):
 
 def DATALoader(dataset_name,
                 batch_size = 1,
-                num_workers = 8, unit_length = 4) : 
+                num_workers = 8, unit_length = 4): 
     
-    train_loader = torch.utils.data.DataLoader(VQMotionDataset(dataset_name, unit_length=unit_length),
-                                              batch_size,
-                                              shuffle=True,
-                                              num_workers=num_workers,
-                                              #collate_fn=collate_fn,
-                                              drop_last = True)
-    
-    return train_loader
+    return torch.utils.data.DataLoader(
+        VQMotionDataset(dataset_name, unit_length=unit_length),
+        batch_size,
+        shuffle=True,
+        num_workers=num_workers,
+        # collate_fn=collate_fn,
+        drop_last=True,
+    )
 
 def cycle(iterable):
     while True:
-        for x in iterable:
-            yield x
+        yield from iterable

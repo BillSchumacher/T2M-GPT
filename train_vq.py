@@ -44,7 +44,7 @@ w_vectorizer = WordVectorizer('./glove', 'our_vab')
 if args.dataname == 'kit' : 
     dataset_opt_path = 'checkpoints/kit/Comp_v6_KLD005/opt.txt'  
     args.nb_joints = 21
-    
+
 else :
     dataset_opt_path = 'checkpoints/t2m/Comp_v6_KLD005/opt.txt'
     args.nb_joints = 22
@@ -82,8 +82,8 @@ net = vqvae.HumanVQVAE(args, ## use args to define different parameters in diffe
                        args.vq_norm)
 
 
-if args.resume_pth : 
-    logger.info('loading checkpoint from {}'.format(args.resume_pth))
+if args.resume_pth: 
+    logger.info(f'loading checkpoint from {args.resume_pth}')
     ckpt = torch.load(args.resume_pth, map_location='cpu')
     net.load_state_dict(ckpt['net'], strict=True)
 net.train()
@@ -92,7 +92,7 @@ net.cuda()
 ##### ---- Optimizer & Scheduler ---- #####
 optimizer = optim.AdamW(net.parameters(), lr=args.lr, betas=(0.9, 0.99), weight_decay=args.weight_decay)
 scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=args.lr_scheduler, gamma=args.gamma)
-  
+
 
 Loss = losses.ReConsLoss(args.recons_loss, args.nb_joints)
 
@@ -100,18 +100,18 @@ Loss = losses.ReConsLoss(args.recons_loss, args.nb_joints)
 avg_recons, avg_perplexity, avg_commit = 0., 0., 0.
 
 for nb_iter in range(1, args.warm_up_iter):
-    
+
     optimizer, current_lr = update_lr_warm_up(optimizer, nb_iter, args.warm_up_iter, args.lr)
-    
+
     gt_motion = next(train_loader_iter)
     gt_motion = gt_motion.cuda().float() # (bs, 64, dim)
 
     pred_motion, loss_commit, perplexity = net(gt_motion)
     loss_motion = Loss(pred_motion, gt_motion)
     loss_vel = Loss.forward_vel(pred_motion, gt_motion)
-    
+
     loss = loss_motion + args.commit * loss_commit + args.loss_vel * loss_vel
-    
+
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
@@ -119,14 +119,14 @@ for nb_iter in range(1, args.warm_up_iter):
     avg_recons += loss_motion.item()
     avg_perplexity += perplexity.item()
     avg_commit += loss_commit.item()
-    
+
     if nb_iter % args.print_iter ==  0 :
         avg_recons /= args.print_iter
         avg_perplexity /= args.print_iter
         avg_commit /= args.print_iter
-        
+
         logger.info(f"Warmup. Iter {nb_iter} :  lr {current_lr:.5f} \t Commit. {avg_commit:.5f} \t PPL. {avg_perplexity:.2f} \t Recons.  {avg_recons:.5f}")
-        
+
         avg_recons, avg_perplexity, avg_commit = 0., 0., 0.
 
 ##### ---- Training ---- #####
@@ -134,36 +134,36 @@ avg_recons, avg_perplexity, avg_commit = 0., 0., 0.
 best_fid, best_iter, best_div, best_top1, best_top2, best_top3, best_matching, writer, logger = eval_trans.evaluation_vqvae(args.out_dir, val_loader, net, logger, writer, 0, best_fid=1000, best_iter=0, best_div=100, best_top1=0, best_top2=0, best_top3=0, best_matching=100, eval_wrapper=eval_wrapper)
 
 for nb_iter in range(1, args.total_iter + 1):
-    
+
     gt_motion = next(train_loader_iter)
     gt_motion = gt_motion.cuda().float() # bs, nb_joints, joints_dim, seq_len
-    
+
     pred_motion, loss_commit, perplexity = net(gt_motion)
     loss_motion = Loss(pred_motion, gt_motion)
     loss_vel = Loss.forward_vel(pred_motion, gt_motion)
-    
+
     loss = loss_motion + args.commit * loss_commit + args.loss_vel * loss_vel
-    
+
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
     scheduler.step()
-    
+
     avg_recons += loss_motion.item()
     avg_perplexity += perplexity.item()
     avg_commit += loss_commit.item()
-    
+
     if nb_iter % args.print_iter ==  0 :
         avg_recons /= args.print_iter
         avg_perplexity /= args.print_iter
         avg_commit /= args.print_iter
-        
+
         writer.add_scalar('./Train/L1', avg_recons, nb_iter)
         writer.add_scalar('./Train/PPL', avg_perplexity, nb_iter)
         writer.add_scalar('./Train/Commit', avg_commit, nb_iter)
-        
+
         logger.info(f"Train. Iter {nb_iter} : \t Commit. {avg_commit:.5f} \t PPL. {avg_perplexity:.2f} \t Recons.  {avg_recons:.5f}")
-        
+
         avg_recons, avg_perplexity, avg_commit = 0., 0., 0.,
 
     if nb_iter % args.eval_iter==0 :

@@ -74,11 +74,10 @@ class VQVAE_251(nn.Module):
     def forward_decoder(self, x):
         x_d = self.quantizer.dequantize(x)
         x_d = x_d.view(1, -1, self.code_dim).permute(0, 2, 1).contiguous()
-        
+
         # decoder
         x_decoder = self.decoder(x_d)
-        x_out = self.postprocess(x_decoder)
-        return x_out
+        return self.postprocess(x_decoder)
 
 
 
@@ -103,8 +102,7 @@ class HumanVQVAE(nn.Module):
 
     def encode(self, x):
         b, t, c = x.size()
-        quants = self.vqvae.encode(x) # (N, T)
-        return quants
+        return self.vqvae.encode(x)
 
     def forward(self, x):
 
@@ -113,6 +111,5 @@ class HumanVQVAE(nn.Module):
         return x_out, loss, perplexity
 
     def forward_decoder(self, x):
-        x_out = self.vqvae.forward_decoder(x)
-        return x_out
+        return self.vqvae.forward_decoder(x)
         

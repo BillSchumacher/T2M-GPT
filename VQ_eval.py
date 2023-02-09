@@ -55,8 +55,8 @@ net = vqvae.HumanVQVAE(args, ## use args to define different parameters in diffe
                        args.vq_act,
                        args.vq_norm)
 
-if args.resume_pth : 
-    logger.info('loading checkpoint from {}'.format(args.resume_pth))
+if args.resume_pth: 
+    logger.info(f'loading checkpoint from {args.resume_pth}')
     ckpt = torch.load(args.resume_pth, map_location='cpu')
     net.load_state_dict(ckpt['net'], strict=True)
 net.train()

@@ -52,24 +52,21 @@ class Text2MotionDataset(data.Dataset):
 
         id_list = []
         with cs.open(split_file, 'r') as f:
-            for line in f.readlines():
-                id_list.append(line.strip())
-
+            id_list.extend(line.strip() for line in f.readlines())
         new_name_list = []
         data_dict = {}
         for name in tqdm(id_list):
             try:
-                m_token_list = np.load(pjoin(self.data_root, tokenizer_name, '%s.npy'%name))
+                m_token_list = np.load(pjoin(self.data_root, tokenizer_name, f'{name}.npy'))
 
                 # Read text
-                with cs.open(pjoin(self.text_dir, name + '.txt')) as f:
+                with cs.open(pjoin(self.text_dir, f'{name}.txt')) as f:
                     text_data = []
                     flag = False
                     lines = f.readlines()
 
                     for line in lines:
                         try:
-                            text_dict = {}
                             line_split = line.strip().split('#')
                             caption = line_split[0]
                             t_tokens = line_split[1].split(' ')
@@ -78,15 +75,14 @@ class Text2MotionDataset(data.Dataset):
                             f_tag = 0.0 if np.isnan(f_tag) else f_tag
                             to_tag = 0.0 if np.isnan(to_tag) else to_tag
 
-                            text_dict['caption'] = caption
-                            text_dict['tokens'] = t_tokens
+                            text_dict = {'caption': caption, 'tokens': t_tokens}
                             if f_tag == 0.0 and to_tag == 0.0:
                                 flag = True
                                 text_data.append(text_dict)
                             else:
                                 m_token_list_new = [tokens[int(f_tag*fps/unit_length) : int(to_tag*fps/unit_length)] for tokens in m_token_list if int(f_tag*fps/unit_length) < int(to_tag*fps/unit_length)]
 
-                                if len(m_token_list_new) == 0:
+                                if not m_token_list_new:
                                     continue
                                 new_name = '%s_%f_%f'%(name, f_tag, to_tag)
 
@@ -116,13 +112,9 @@ class Text2MotionDataset(data.Dataset):
         text_data = random.choice(text_list)
         caption= text_data['caption']
 
-        
-        coin = np.random.choice([False, False, True])
-        # print(len(m_tokens))
-        if coin:
-            # drop one token at the head or tail
-            coin2 = np.random.choice([True, False])
-            if coin2:
+
+        if coin := np.random.choice([False, False, True]):
+            if coin2 := np.random.choice([True, False]):
                 m_tokens = m_tokens[:-1]
             else:
                 m_tokens = m_tokens[1:]
@@ -140,22 +132,25 @@ class Text2MotionDataset(data.Dataset):
 
 def DATALoader(dataset_name,
                 batch_size, codebook_size, tokenizer_name, unit_length=4,
-                num_workers = 8) : 
+                num_workers = 8): 
 
-    train_loader = torch.utils.data.DataLoader(Text2MotionDataset(dataset_name, codebook_size = codebook_size, tokenizer_name = tokenizer_name, unit_length=unit_length),
-                                              batch_size,
-                                              shuffle=True,
-                                              num_workers=num_workers,
-                                              #collate_fn=collate_fn,
-                                              drop_last = True)
-    
-
-    return train_loader
+    return torch.utils.data.DataLoader(
+        Text2MotionDataset(
+            dataset_name,
+            codebook_size=codebook_size,
+            tokenizer_name=tokenizer_name,
+            unit_length=unit_length,
+        ),
+        batch_size,
+        shuffle=True,
+        num_workers=num_workers,
+        # collate_fn=collate_fn,
+        drop_last=True,
+    )
 
 
 def cycle(iterable):
     while True:
-        for x in iterable:
-            yield x
+        yield from iterable
 
 

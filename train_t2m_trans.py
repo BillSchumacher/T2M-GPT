@@ -1,4 +1,4 @@
-import os 
+import os
 import torch
 import numpy as np
 
@@ -75,14 +75,14 @@ trans_encoder = trans.Text2Motion_Transformer(num_vq=args.nb_code,
                                 fc_rate=args.ff_rate)
 
 
-print ('loading checkpoint from {}'.format(args.resume_pth))
+print(f'loading checkpoint from {args.resume_pth}')
 ckpt = torch.load(args.resume_pth, map_location='cpu')
 net.load_state_dict(ckpt['net'], strict=True)
 net.eval()
 net.cuda()
 
 if args.resume_trans is not None:
-    print ('loading transformer checkpoint from {}'.format(args.resume_trans))
+    print(f'loading transformer checkpoint from {args.resume_trans}')
     ckpt = torch.load(args.resume_trans, map_location='cpu')
     trans_encoder.load_state_dict(ckpt['trans'], strict=True)
 trans_encoder.train()
@@ -107,26 +107,26 @@ for batch in train_loader_token:
     pose = pose.cuda().float() # bs, nb_joints, joints_dim, seq_len
     target = net.encode(pose)
     target = target.cpu().numpy()
-    np.save(pjoin(args.vq_dir, name[0] +'.npy'), target)
+    np.save(pjoin(args.vq_dir, f'{name[0]}.npy'), target)
 
 
 train_loader = dataset_TM_train.DATALoader(args.dataname, args.batch_size, args.nb_code, args.vq_name, unit_length=2**args.down_t)
 train_loader_iter = dataset_TM_train.cycle(train_loader)
 
-        
+
 ##### ---- Training ---- #####
 best_fid, best_iter, best_div, best_top1, best_top2, best_top3, best_matching, writer, logger = eval_trans.evaluation_transformer(args.out_dir, val_loader, net, trans_encoder, logger, writer, 0, best_fid=1000, best_iter=0, best_div=100, best_top1=0, best_top2=0, best_top3=0, best_matching=100, clip_model=clip_model, eval_wrapper=eval_wrapper)
 while nb_iter <= args.total_iter:
-    
+
     batch = next(train_loader_iter)
     clip_text, m_tokens, m_tokens_len = batch
     m_tokens, m_tokens_len = m_tokens.cuda(), m_tokens_len.cuda()
     bs = m_tokens.shape[0]
     target = m_tokens    # (bs, 26)
     target = target.cuda()
-    
+
     text = clip.tokenize(clip_text, truncate=True).cuda()
-    
+
     feat_clip_text = clip_model.encode_text(text).float()
 
     input_index = target[:,:-1]
